@@ -9,7 +9,31 @@ using Microsoft.Win32;
 
 namespace Recorder
 {
-    class AudioProc
+	public class PitchDetectedEventArgs : EventArgs
+	{
+		public string Note { get; private set; }
+		public string Octave { get; private set; }
+		public float Frequency { get; private set; }
+
+		public PitchDetectedEventArgs(string note, string octave, float frequency)
+		{
+			Note = note;
+			Octave = octave;
+			Frequency = frequency;
+		}
+	}
+
+	public class OscilloscopeDataRecivedEventArgs : EventArgs
+	{
+		public float[] Samples{get; private set;}
+
+		public OscilloscopeDataRecivedEventArgs(float[] samples)
+		{
+			Samples = samples;
+		}
+	}
+
+	class AudioProc
     {
         public AudioProc(string filename)
         {
@@ -26,17 +50,17 @@ namespace Recorder
         private WaveFileWriter writer;
         private RecordingState recordingState;
         private WaveIn waveIn;
-        public delegate void pitchDetected();
-        public event pitchDetected pitchDetectedEvent;
+        public delegate void PitchDetectedEventHandler(object sender,PitchDetectedEventArgs e);
+        public event PitchDetectedEventHandler PitchDetectedEvent;
+		public delegate void OscilloscopeDataRecivedEventHandler(object sender, OscilloscopeDataRecivedEventArgs e);
+		public event OscilloscopeDataRecivedEventHandler OscilloscopeDataRecivedEvent;
         private string[] Notes = { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "B", "H" };
         public float diff = 0;
-        public string Note {get; set; }
-        public string Octave { get; set; }
-        public float Pitch { get; set; }
+        private string Octave { get; set; }
+		private float pitch;
         
         public void waveInStart(int device)
         {
-            
             waveIn = new WaveIn();
             waveIn.DeviceNumber = device;
             waveIn.DataAvailable += waveIn_DataAvailable;
@@ -44,7 +68,6 @@ namespace Recorder
             writer = new WaveFileWriter(FileName, waveIn.WaveFormat);
             waveIn.StartRecording();
             recordingState = RecordingState.Recording;
-                     
         }
         private void waveIn_DataAvailable(object sender, WaveInEventArgs e)
         {
@@ -60,11 +83,12 @@ namespace Recorder
                 samples.Add(sample32);
             }
             float[] smpl = samples.ToArray();
-            Pitch = DetectPitch(60, 1200, smpl);
-            int noteIndex = detectNote(Pitch);
-            if (noteIndex >= 0 && noteIndex <= 11)
-            Note = Notes[noteIndex];
-            pitchDetectedEvent();
+			if(OscilloscopeDataRecivedEvent!=null)
+			OscilloscopeDataRecivedEvent(this,new OscilloscopeDataRecivedEventArgs(smpl));
+            pitch = DetectPitch(60, 1200, smpl);
+            int noteIndex = detectNoteIndex(pitch);
+			if(PitchDetectedEvent!=null)
+            PitchDetectedEvent(this, new PitchDetectedEventArgs(Notes[noteIndex],Octave,pitch));
             samples.Clear();
            
         }
@@ -101,6 +125,7 @@ namespace Recorder
             File.Copy(FileName,fileName);
             File.Delete(FileName);
         }
+
         private float DetectPitch(int minFreq, int maxFreq, float[] source)
         {
             const int sampleRate = 44100; //Максимальное расстояние в обратном направлении, на которое смещаемся в поиске совпадения
@@ -151,19 +176,17 @@ namespace Recorder
 
         }
         
-		private int detectNote(float pitch)
+		private int detectNoteIndex(float pitchValue)
         {
-            
-            float exp = pitch / 65.41f;
+            float exp = pitchValue / 65.41f;
             float freq = (float)Math.Log((double)exp, 2)*12;
             Octave = "3";
-            if (pitch < 1046.50f) Octave = "2";
-            if (pitch < 523.25f) Octave = "1";
-            if (pitch < 261.63f) Octave = "M";
-            if (pitch < 130.82f) Octave = "B";
-            //if(tmp >=0 && tmp < 192)
-            //diff = tmp - (float)Math.Round(tmp);
-            return (int)Math.Round(freq % 12);
+            if (pitchValue < 1046.50f) Octave = "2";
+            if (pitchValue < 523.25f) Octave = "1";
+            if (pitchValue < 261.63f) Octave = "M";
+            if (pitchValue < 130.82f) Octave = "B";
+			var index = (int)Math.Floor(freq % 12);
+			return index;
         }
                 
     } 

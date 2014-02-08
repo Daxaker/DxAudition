@@ -29,13 +29,35 @@ namespace Recorder
             button2.IsEnabled = false;
             button3.IsEnabled = false;
             _deviceNumber = devNum;
-            audioProc.pitchDetectedEvent += audioProc_pitchDetectedEvent;
+            audioProc.PitchDetectedEvent += audioProc_pitchDetectedEvent;
+	        audioProc.OscilloscopeDataRecivedEvent += audioProc_OscilloscopeDataRecivedEvent;
+			
         }
 
-        void audioProc_pitchDetectedEvent()
+	    private int count = 0;
+		private void audioProc_OscilloscopeDataRecivedEvent(object sender, OscilloscopeDataRecivedEventArgs e)
+		{
+			var smpls = e.Samples;
+			if (count >= cnvOscillo.Width)
+			{
+				cnvOscillo.Children.Clear();
+				count = 0;
+			}
+			Polyline poly = new Polyline();
+			poly.Stroke = Brushes.Red;
+			poly.StrokeThickness = 2;
+			foreach (var smpl in smpls)
+			{
+				poly.Points.Add(new Point(count++,(cnvOscillo.Height/2)+smpl*100));
+			}
+			cnvOscillo.Children.Add(poly);
+			
+		}
+
+        void audioProc_pitchDetectedEvent(object sender, PitchDetectedEventArgs e)
         {
-            label1.Content = String.Format(@"{0}({1})", audioProc.Note, audioProc.Octave);
-            label2.Content = String.Format(@"{0:0.00} Hz", audioProc.Pitch);
+            label1.Content = String.Format(@"{0}({1})", e.Note, e.Octave);
+            label2.Content = String.Format(@"{0:0.00} Hz", e.Frequency);
         }
         
         private void Start_Click(object sender, RoutedEventArgs e)
@@ -77,6 +99,10 @@ namespace Recorder
             File.Delete(audioProc.FileName);
         }
 
-        
+	    private void DrawOscilloGraphics(float[] smpls)
+	    {
+			
+	    }
+
     }
 }
