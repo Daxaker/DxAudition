@@ -21,7 +21,7 @@ namespace Recorder
     /// </summary>
     public partial class StartWindow 
     {
-        AudioProc audioProc = new AudioProc(System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString() + ".wav"));
+        AudioProc audioProc = new AudioProc();//new AudioProc(System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString() + ".wav"));
         private int _deviceNumber;
         public StartWindow(int devNum)
         {
@@ -80,7 +80,6 @@ namespace Recorder
 
         private void Save_Click(object sender, RoutedEventArgs e)
         {
-            audioProc.SaveWaveFile();
             button3.IsEnabled = false;
         }
 
@@ -96,7 +95,6 @@ namespace Recorder
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            File.Delete(audioProc.FileName);
         }
 
 	    private void DrawOscilloGraphics(float[] smpls)

@@ -5,3 +5,9 @@
 *.user
 *.suo
 *.userprefs
+/Recorder/bin
+/Recorder/obj/x86
+/_ReSharper.Recorder/BuildScriptCache
+/_ReSharper.Recorder/NamedArguments
+/_ReSharper.Recorder/ProjectModel
+/_ReSharper.Recorder
